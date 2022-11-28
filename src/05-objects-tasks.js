@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => width * height;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +53,12 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  function Obj() {}
+  Obj.prototype = proto;
+  const obj = new Obj();
+  Object.entries(JSON.parse(json)).forEach(([key, val]) => { obj[key] = val; });
+  return obj;
 }
 
 
@@ -110,33 +116,113 @@ function fromJSON(/* proto, json */) {
  *  For more examples see unit tests.
  */
 
+
+class CssBuilder {
+  constructor() {
+    this.acc = '';
+
+    this.allowedOrder = [
+      'element', 'id', 'class', 'attribute', 'pseudo-class',
+      'pseudo-element',
+    ];
+    this.cantRepeat = ['id', 'element', 'pseudo-element'];
+
+    this.currentOrder = new Map();
+  }
+
+  checkOrder(currentElem) {
+    if (this.cantRepeat.includes(currentElem) && this.currentOrder.has(currentElem)) {
+      throw Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+
+    this.currentOrder.set(currentElem, null);
+
+    let lastOrder = 0;
+    Array.from(this.currentOrder.keys()).forEach((key) => {
+      const i = this.allowedOrder.indexOf(key);
+      if (i < lastOrder) {
+        throw Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+      }
+      lastOrder = i;
+    });
+  }
+
+  element(value) {
+    this.acc += `${value}`;
+    this.checkOrder('element');
+    return this;
+  }
+
+  id(value) {
+    this.acc += `#${value}`;
+    this.checkOrder('id');
+    return this;
+  }
+
+  class(value) {
+    this.acc += `.${value}`;
+    this.checkOrder('class');
+    return this;
+  }
+
+  attr(value) {
+    this.acc += `[${value}]`;
+    this.checkOrder('attribute');
+    return this;
+  }
+
+  pseudoClass(value) {
+    this.acc += `:${value}`;
+    this.checkOrder('pseudo-class');
+    return this;
+  }
+
+  pseudoElement(value) {
+    this.acc += `::${value}`;
+    this.checkOrder('pseudo-element');
+    return this;
+  }
+
+  combine(selector1, combinator, selector2) {
+    const t1 = selector1.stringify();
+    const t2 = selector2.stringify();
+    this.acc = `${t1} ${combinator} ${t2}`;
+
+    return this;
+  }
+
+  stringify() {
+    return this.acc;
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return (new CssBuilder()).element(value);
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return (new CssBuilder()).id(value);
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return (new CssBuilder()).class(value);
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return (new CssBuilder()).attr(value);
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return (new CssBuilder()).pseudoClass(value);
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return (new CssBuilder()).pseudoElement(value);
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return (new CssBuilder()).combine(selector1, combinator, selector2);
   },
 };
 
